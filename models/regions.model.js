@@ -8,7 +8,7 @@ const RegionsSchema = new Schema(
             require: true,
             unique: true,
         },
-        dentists: {
+        clinics: {
             type: [Schema.Types.Mixed],
             require: true,
         },

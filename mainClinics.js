@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 const mongooseURL = process.env.MONGODB_URL;
+const APIKEY = process.env.GOOGLE_MAPS_API_KEY;
 
 async function extractdentist(){
     const cursor = Dentists.find().cursor();
