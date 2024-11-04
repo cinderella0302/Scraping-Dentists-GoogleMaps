@@ -1,5 +1,6 @@
-import Dentists from "./models/dentists.model.js";
+import Regions from "./models/regions.model.js";
 import Clinics from "./models/clinics.model.js";
+import axios from 'axios';
 import mongoose from "mongoose";
 import dotenv from 'dotenv';
 
@@ -7,72 +8,52 @@ dotenv.config();
 const mongooseURL = process.env.MONGODB_URL;
 const APIKEY = process.env.GOOGLE_MAPS_API_KEY;
 
-async function extractdentist(){
-    const cursor = Dentists.find().cursor();
+async function extractClinic(){
+    const cursor = Regions.find().cursor();
+    // console.log(cursor);
     let flag = false;
     for(let doc = await cursor.next(); doc != null; doc = await cursor.next()){
-        const website = doc.WebSite;
-        const id = doc.AddressId;
+        const zipcode = doc.zipcode;
 
-        if(doc.AddressId == '4710347'){
+        if(zipcode == '24012'){
             flag = true;
         }
+        // console.log(flag);
+        console.log('---------------------- zipcode: ', zipcode);
+        
+        if(flag){
+            const clinics = doc.clinics;
 
-        console.log('------------------------- dentist id: ', id, ', --------- website: ', website);
-
-        if (website) {
-            if(flag){
-                const clinic = await Clinics.findOne({Website: website});
-                let existed = false;
-                // console.log('----- clinic: ', clinic);
-                if(clinic){
-
-                    for (let i = 0; i < clinic.Dentists.length; i++){
-                        // console.log('clinic dentist: ', clinic.Dentists[i], ', dentist _id: ', doc._id);
-                        if(clinic.Dentists[i].toString() === doc._id.toString()){
-                            console.log('----- dentist already exists: ', id);
-                            existed = true;
-                            break;
-                        }
+            for(let i = 0; i < clinics.length; i++){
+                const placeId = clinics[i].place_id;
+                if(placeId){
+                    const clinicInfo = await axios.get(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${APIKEY}`);
+                    // console.log(clinicInfo);
+                    try{
+                        await Clinics.create(clinicInfo.data.result);
+                        console.log('----- saved clinic place id: ', placeId);
+                    }catch(error){
+                        console.log('----- save error: ', error.message, placeId);
                     }
-
-                    // console.log('----- existed: ', existed);
-
-                    if(existed){
-                        console.log('----- the dentist already existed: ', id);
-                    } else{
-                        await Clinics.updateOne(
-                            { Website: website },
-                            { $push: {
-                                Dentists: doc._id,
-                                }
-                            }
-                        );
-                        console.log('----- Update Clinics one dentist: ', id);
-                    }
-                } else{
-                    await Clinics.create(
-                        {
-                            Website: website,
-                            Dentists: [doc._id],
-                        }
-                    )
-                    console.log('----- Created clinics: ', website, '----- dentist: ', id);
+                }else{
+                    console.log('----- place id isnt exist');
                 }
-
-            } else {
-                console.log('----- bypass dentist: ', id);
             }
-        } else {
-            console.log('---- website doesnt exist dentist: ', doc.id);
+        }else{
+            console.log('----- already existed zipcode: ', zipcode);
         }
     }
+
+    console.log('------- Successfully done all things!!!');
 }
 
 await mongoose.connect(mongooseURL);
 console.log('Connected to mongoDB');
 
 (async () => {  
-    await extractdentist();  
+    await extractClinic();  
     // Any additional logic or cleanup can go here.  
 })();  
+
+// const result = await Regions.findOne({zipcode: 22193});
+// console.log(result);

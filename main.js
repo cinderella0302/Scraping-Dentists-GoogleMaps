@@ -54,30 +54,30 @@ function sleep(ms) {
 async function getRequestForRegion(zipcode, token = ''){
 
     if(token){
-        sleep(1000);
+        // sleep(1000);
         const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?pagetoken=${token}&key=${APIKEY}`;
-        console.log(url);
-        const response = await axios.get(url, {
-            headers: {
-                'accept': 'application/json, text/plain, */*',
-                'accept-encoding': 'gzip, deflate, br',
-                'accept-language': 'en-US,en;q=0.9',
-                // 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
-                'User-Agent': 'PostmanRuntime/7.42.0',
-            }
-        });
+        // console.log(url);
+        const response = await axios.get(url);
+
+        // for(let i = 0; i < response.data.results.length; i++){
+        //     await Regions.findOneAndUpdate(
+        //         { zipcode: zipcode},
+        //         {
+        //             $push: {
+        //                 clinics: response.data.results[i],
+        //             }
+        //         }
+        //     );
+        // }
 
         await Regions.findOneAndUpdate(
             { zipcode: zipcode},
             {
                 $push: {
-                    clinics: response.data.results,
+                    clinics: { $in: response.data.results },
                 }
             }
         );
-
-        console.log(token);
-        console.log(response.data);
 
         if(response.data.next_page_token){
             console.log('----- continue zipcode: ', zipcode);
